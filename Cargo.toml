@@ -27,6 +27,7 @@ rustls-tls-webpki-roots = ["__rustls-tls", "webpki-roots"]
 __rustls-tls = ["rustls", "rustls-pki-types", "tokio-rustls", "stream", "tungstenite/__rustls-tls", "handshake"]
 stream = []
 url = ["tungstenite/url"]
+deflate = ["tungstenite/deflate", "handshake"]
 
 [dependencies]
 log = "0.4.17"
@@ -36,6 +37,8 @@ tokio = { version = "1.0.0", default-features = false, features = ["io-util"] }
 [dependencies.tungstenite]
 version = "0.23.0"
 default-features = false
+git = "https://github.com/taosdata/tungstenite-rs.git"
+branch = "feat/taosdata/permessage-deflate"
 
 [dependencies.native-tls-crate]
 optional = true
