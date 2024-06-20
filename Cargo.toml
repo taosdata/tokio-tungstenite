@@ -24,7 +24,9 @@ native-tls = ["native-tls-crate", "tokio-native-tls", "stream", "tungstenite/nat
 native-tls-vendored = ["native-tls", "native-tls-crate/vendored", "tungstenite/native-tls-vendored"]
 rustls-tls-native-roots = ["__rustls-tls", "rustls-native-certs"]
 rustls-tls-webpki-roots = ["__rustls-tls", "webpki-roots"]
-rustls-dangerous = []
+rustls-dangerous = ["__rustls-tls", "rustls-ring-crypto-provider"]
+rustls-aws-lc-crypto-provider = ["__rustls-tls", "rustls/aws-lc-rs"]
+rustls-ring-crypto-provider = ["__rustls-tls", "rustls/ring"]
 __rustls-tls = ["rustls", "rustls-pki-types", "tokio-rustls", "stream", "tungstenite/__rustls-tls", "handshake"]
 stream = []
 url = ["tungstenite/url"]
@@ -49,7 +51,7 @@ version = "0.2.11"
 [dependencies.rustls]
 optional = true
 version = "0.23.0"
-default-features = true
+default-features = false
 
 [dependencies.rustls-pki-types]
 optional = true

@@ -108,8 +108,16 @@ mod encryption {
                             }
 
                             if rustls::crypto::CryptoProvider::get_default().is_none() {
-                                let _ =
-                                    rustls::crypto::aws_lc_rs::default_provider().install_default();
+                                #[cfg(feature = "rustls-ring-crypto-provider")]
+                                {
+                                    let _ =
+                                        rustls::crypto::ring::default_provider().install_default();
+                                }
+                                #[cfg(feature = "rustls-aws-lc-crypto-provider")]
+                                {
+                                    let _ = rustls::crypto::aws_lc_rs::default_provider()
+                                        .install_default();
+                                }
                             }
                             let mut client = ClientConfig::builder()
                                 .with_root_certificates(root_store)
