@@ -65,7 +65,7 @@ mod encryption {
     #[cfg(feature = "__rustls-tls")]
     pub mod rustls {
         pub use rustls::ClientConfig;
-        use rustls::RootCertStore;
+        use rustls::{client::danger::ServerCertVerifier, RootCertStore};
         use rustls_pki_types::ServerName;
         use tokio_rustls::TlsConnector as TokioTlsConnector;
 
@@ -91,6 +91,7 @@ mod encryption {
                     let config = match tls_connector {
                         Some(config) => config,
                         None => {
+                            // rustls::crypto::CryptoProvider::install_default(self)
                             #[allow(unused_mut)]
                             let mut root_store = RootCertStore::empty();
                             #[cfg(feature = "rustls-tls-native-roots")]
@@ -106,11 +107,84 @@ mod encryption {
                                 root_store.extend(webpki_roots::TLS_SERVER_ROOTS.iter().cloned());
                             }
 
-                            Arc::new(
-                                ClientConfig::builder()
-                                    .with_root_certificates(root_store)
-                                    .with_no_client_auth(),
-                            )
+                            if rustls::crypto::CryptoProvider::get_default().is_none() {
+                                let _ =
+                                    rustls::crypto::aws_lc_rs::default_provider().install_default();
+                            }
+                            let mut client = ClientConfig::builder()
+                                .with_root_certificates(root_store)
+                                .with_no_client_auth();
+
+                            #[cfg(feature = "rustls-dangerous")]
+                            {
+                                #[derive(Debug)]
+                                pub struct NoCertificateVerification();
+                                impl ServerCertVerifier for NoCertificateVerification {
+                                    fn verify_server_cert(
+                                        &self,
+                                        _end_entity: &rustls_pki_types::CertificateDer<'_>,
+                                        _intermediates: &[rustls_pki_types::CertificateDer<'_>],
+                                        _server_name: &ServerName<'_>,
+                                        _ocsp_response: &[u8],
+                                        _now: rustls_pki_types::UnixTime,
+                                    ) -> Result<
+                                        rustls::client::danger::ServerCertVerified,
+                                        rustls::Error,
+                                    > {
+                                        Ok(rustls::client::danger::ServerCertVerified::assertion())
+                                    }
+
+                                    fn verify_tls12_signature(
+                                        &self,
+                                        _message: &[u8],
+                                        _cert: &rustls_pki_types::CertificateDer<'_>,
+                                        _dss: &rustls::DigitallySignedStruct,
+                                    ) -> Result<
+                                        rustls::client::danger::HandshakeSignatureValid,
+                                        rustls::Error,
+                                    > {
+                                        Ok(rustls::client::danger::HandshakeSignatureValid::assertion())
+                                    }
+
+                                    fn verify_tls13_signature(
+                                        &self,
+                                        _message: &[u8],
+                                        _cert: &rustls_pki_types::CertificateDer<'_>,
+                                        _dss: &rustls::DigitallySignedStruct,
+                                    ) -> Result<
+                                        rustls::client::danger::HandshakeSignatureValid,
+                                        rustls::Error,
+                                    > {
+                                        Ok(rustls::client::danger::HandshakeSignatureValid::assertion())
+                                    }
+
+                                    fn supported_verify_schemes(
+                                        &self,
+                                    ) -> Vec<rustls::SignatureScheme>
+                                    {
+                                        use rustls::SignatureScheme::*;
+                                        vec![
+                                            RSA_PKCS1_SHA1,
+                                            ECDSA_SHA1_Legacy,
+                                            RSA_PKCS1_SHA256,
+                                            ECDSA_NISTP256_SHA256,
+                                            RSA_PKCS1_SHA384,
+                                            ECDSA_NISTP384_SHA384,
+                                            RSA_PKCS1_SHA512,
+                                            ECDSA_NISTP521_SHA512,
+                                            RSA_PSS_SHA256,
+                                            RSA_PSS_SHA384,
+                                            RSA_PSS_SHA512,
+                                            ED25519,
+                                            ED448,
+                                        ]
+                                    }
+                                }
+                                client.dangerous().set_certificate_verifier(Arc::new(
+                                    NoCertificateVerification(),
+                                ));
+                            }
+                            Arc::new(client)
                         }
                     };
                     let domain = ServerName::try_from(domain.as_str())
