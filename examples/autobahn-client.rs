@@ -1,22 +1,31 @@
 use futures_util::{SinkExt, StreamExt};
 use log::*;
 use tokio_tungstenite::{
-    connect_async,
-    tungstenite::{Error, Result},
+    connect_async_with_config,
+    tungstenite::{extensions::DeflateConfig, protocol::WebSocketConfig, Error, Result},
 };
 
 const AGENT: &str = "Tungstenite";
 
 async fn get_case_count() -> Result<u32> {
-    let (mut socket, _) = connect_async("ws://localhost:9001/getCaseCount").await?;
+    let mut config = WebSocketConfig::default();
+    config.compression = Some(DeflateConfig::default());
+    let (mut socket, _) =
+        connect_async_with_config("ws://localhost:9001/getCaseCount", Some(config), false).await?;
     let msg = socket.next().await.expect("Can't fetch case count")?;
     socket.close(None).await?;
     Ok(msg.into_text()?.parse::<u32>().expect("Can't parse case count"))
 }
 
 async fn update_reports() -> Result<()> {
-    let (mut socket, _) =
-        connect_async(&format!("ws://localhost:9001/updateReports?agent={}", AGENT)).await?;
+    let mut config = WebSocketConfig::default();
+    config.compression = Some(DeflateConfig::default());
+    let (mut socket, _) = connect_async_with_config(
+        &format!("ws://localhost:9001/updateReports?agent={}", AGENT),
+        Some(config),
+        false,
+    )
+    .await?;
     socket.close(None).await?;
     Ok(())
 }
@@ -24,7 +33,9 @@ async fn update_reports() -> Result<()> {
 async fn run_test(case: u32) -> Result<()> {
     info!("Running test case {}", case);
     let case_url = &format!("ws://localhost:9001/runCase?case={}&agent={}", case, AGENT);
-    let (mut ws_stream, _) = connect_async(case_url).await?;
+    let mut config = WebSocketConfig::default();
+    config.compression = Some(DeflateConfig::default());
+    let (mut ws_stream, _) = connect_async_with_config(case_url, Some(config), false).await?;
     while let Some(msg) = ws_stream.next().await {
         let msg = msg?;
         if msg.is_text() || msg.is_binary() {
