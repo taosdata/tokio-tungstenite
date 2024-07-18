@@ -52,6 +52,7 @@ version = "0.2.11"
 optional = true
 version = "0.23.0"
 default-features = false
+features = ["tls12"]
 
 [dependencies.rustls-pki-types]
 optional = true
