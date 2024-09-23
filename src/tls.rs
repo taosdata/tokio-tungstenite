@@ -65,7 +65,7 @@ mod encryption {
     #[cfg(feature = "__rustls-tls")]
     pub mod rustls {
         pub use rustls::ClientConfig;
-        use rustls::{client::danger::ServerCertVerifier, RootCertStore};
+        use rustls::RootCertStore;
         use rustls_pki_types::ServerName;
         use tokio_rustls::TlsConnector as TokioTlsConnector;
 
@@ -135,12 +135,14 @@ mod encryption {
                                         .install_default();
                                 }
                             }
+                            #[allow(unused_mut)]
                             let mut client = ClientConfig::builder()
                                 .with_root_certificates(root_store)
                                 .with_no_client_auth();
 
                             #[cfg(feature = "rustls-dangerous")]
                             {
+                                use rustls::client::danger::ServerCertVerifier;
                                 #[derive(Debug)]
                                 pub struct NoCertificateVerification();
                                 impl ServerCertVerifier for NoCertificateVerification {
