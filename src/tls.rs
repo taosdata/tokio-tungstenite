@@ -127,18 +127,28 @@ mod encryption {
                                 log::debug!("No default CryptoProvider");
                                 #[cfg(feature = "rustls-ring-crypto-provider")]
                                 {
+                                    log::debug!("Install ring-based provider");
                                     if let Err(_) =
-                                        rustls::crypto::ring::default_provider().install_default() {
-                                            log::warn!("Install ring-based default provider failed");
-                                        }
+                                        rustls::crypto::ring::default_provider().install_default()
+                                    {
+                                        log::warn!("Install ring-based default provider failed");
+                                    }
                                 }
                                 #[cfg(feature = "rustls-aws-lc-crypto-provider")]
                                 {
+                                    log::debug!("Install aws-lc-based provider");
                                     if let Err(_) = rustls::crypto::aws_lc_rs::default_provider()
-                                        .install_default() {
-                                            log::warn!("Install aws-lc based provider failed");
-                                        }
+                                        .install_default()
+                                    {
+                                        log::warn!("Install aws-lc based provider failed");
+                                    }
                                 }
+                                rustls::crypto::CryptoProvider::get_default().ok_or_else(|| {
+                                    std::io::Error::new(
+                                        std::io::ErrorKind::NotFound,
+                                        "No default crypto provider of rustls installed",
+                                    )
+                                })?;
                             }
                             #[allow(unused_mut)]
                             let mut client = ClientConfig::builder()
