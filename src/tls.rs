@@ -124,15 +124,20 @@ mod encryption {
                             }
 
                             if rustls::crypto::CryptoProvider::get_default().is_none() {
+                                log::debug!("No default CryptoProvider");
                                 #[cfg(feature = "rustls-ring-crypto-provider")]
                                 {
-                                    let _ =
-                                        rustls::crypto::ring::default_provider().install_default();
+                                    if let Err(_) =
+                                        rustls::crypto::ring::default_provider().install_default() {
+                                            log::warn!("Install ring-based default provider failed");
+                                        }
                                 }
                                 #[cfg(feature = "rustls-aws-lc-crypto-provider")]
                                 {
-                                    let _ = rustls::crypto::aws_lc_rs::default_provider()
-                                        .install_default();
+                                    if let Err(_) = rustls::crypto::aws_lc_rs::default_provider()
+                                        .install_default() {
+                                            log::warn!("Install aws-lc based provider failed");
+                                        }
                                 }
                             }
                             #[allow(unused_mut)]
